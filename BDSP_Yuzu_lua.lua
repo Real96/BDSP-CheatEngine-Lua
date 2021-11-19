@@ -13,8 +13,8 @@ local aTimer = nil
 local timerInterval = 100
 
 function next()
- t = bAnd(initS0, 0xFFFFFFFF)
- s = bShr(initS1, 32)
+ local t = bAnd(initS0, 0xFFFFFFFF)
+ local s = bShr(initS1, 32)
 
  t = t ~ bAnd(bShl(t, 11), 0xFFFFFFFF)
  t = t ~ bShr(t, 8)
