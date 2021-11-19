@@ -26,6 +26,34 @@ function next()
  return bAnd(((t % 0xFFFFFFFF) + 0x80000000), 0xFFFFFFFF)
 end
 
+function isShiny()
+ local tempS0 = initS0
+ local tempS1 = initS1
+ local pid = next()
+ local shinyRand = next()
+
+ initS0 = tempS0
+ initS1 = tempS1
+
+ return (bAnd(pid, 0xFFF0) ~ bShr(pid, 0x10) ~ bShr(shinyRand, 0x10) ~ bAnd(shinyRand, 0xFFF0)) < 0x10
+end
+
+function findShinyAdvances()
+ local targetAdvances = 0
+ local tempS0 = initS0
+ local tempS1 = initS1
+
+ while not isShiny() do
+  next()
+  targetAdvances = targetAdvances + 1
+ end
+
+ initS0 = tempS0
+ initS1 = tempS1
+
+ return targetAdvances
+end
+
 local function showAdvances()
  local s0 = readPointer(s0Addr)
  local s1 = readPointer(s1Addr)
@@ -37,6 +65,7 @@ local function showAdvances()
   if initS0 == s0 or initS1 == s1 then
    print(string.format("Advances: %d", advances))
    print(string.format("S[0]: %016X  S[1]: %016X", s0, s1))
+   print(string.format("Next Shiny advances: %d", findShinyAdvances()))
    print("")
   end
  end
