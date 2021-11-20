@@ -1,5 +1,5 @@
-local s0Addr = 0x20D001810E0
-local s1Addr = 0x20D001810E8
+local s0Addr = 0x19CBE5810E0
+local s1Addr = 0x19CBE5810E8
 
 
 
@@ -64,9 +64,16 @@ function BDSPGenerator:printShinyAdvances()
 
  print(string.format("Next Shiny advances: %d", self.currRNG.advances))
  print("")
+ print("")
 end
 
-
+function printCurrInfo(s0, s1)
+ local currRNG = XorShift.new(s0, s1)
+ currPID = currRNG:next()
+ currShinyRand = currRNG:next()
+ print(string.format("PID: %08X - Shiny Rand: %08X", currPID, currShinyRand))
+ print("")
+end
 
 local function printAdvances()
  local currS0 = readPointer(s0Addr)
@@ -77,6 +84,7 @@ local function printAdvances()
 
   if currS0 == initRNG.s0 and currS1 == initRNG.s1 then
    initRNG:print()
+   printCurrInfo(currS0, currS1)
    local generator = BDSPGenerator.new(currS0, currS1)
    generator:printShinyAdvances()
   end
