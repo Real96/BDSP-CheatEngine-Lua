@@ -67,10 +67,12 @@ function BDSPGenerator:printShinyAdvances()
  print("")
 end
 
-function printCurrInfo(s0, s1)
+
+
+local function printCurrInfo(s0, s1)
  local currRNG = XorShift.new(s0, s1)
- currPID = currRNG:next()
- currShinyRand = currRNG:next()
+ local currPID = currRNG:next()
+ local currShinyRand = currRNG:next()
  print(string.format("PID: %08X - Shiny Rand: %08X", currPID, currShinyRand))
  print("")
 end
