@@ -1,5 +1,10 @@
-local s0Addr = 0x19CBE5810E0
-local s1Addr = 0x19CBE5810E8
+memScan = createMemScan()
+memScan.setOnlyOneResult(true)
+memScan.firstScan(soExactValue, vtByteArray, 0, "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 AB AB AB AB 11 00 00 00 27 00 00 00 00 00 00 00 55 6E 69 74 79 53 74 65 72 65 6F 47 6C 6F 62 61 6C 73 00 00 00 00 00 00", "", 0, 0x7fffffffffff, "", fsmNotAligned, nil, true, false, false, false)
+memScan.waitTillDone()
+
+local s0Addr = memScan.Result - 0x10
+local s1Addr = memScan.Result - 0x8
 
 
 
@@ -36,6 +41,7 @@ function XorShift:print()
 end
 
 local initRNG = XorShift.new(readPointer(s0Addr), readPointer(s1Addr))
+initRNG:print()
 
 
 
@@ -95,11 +101,15 @@ end
 
 
 
+printCurrInfo(readPointer(s0Addr), readPointer(s1Addr))
+local generator = BDSPGenerator.new(readPointer(s0Addr), readPointer(s1Addr))
+generator:printShinyAdvances()
+
 local aTimer = nil
 local timerInterval = 100
 
 local function aTimerTick(timer)
- if isKeyPressed(VK_NUMPAD0) then
+ if isKeyPressed(VK_NUMPAD0) or isKeyPressed(VK_0) then
   timer.destroy()
  end
 

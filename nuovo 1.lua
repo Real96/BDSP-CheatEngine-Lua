@@ -1,0 +1,5 @@
+ms=createMemScan()
+ms.setOnlyOneResult(true)
+ms.firstScan(soExactValue, vtByteArray, 0, "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 AB AB AB AB 11 00 00 00 27 00 00 00 00 00 00 00 55 6E 69 74 79 53 74 65 72 65 6F 47 6C 6F 62 61 6C 73 00 00 00 00 00 00", "", 0, 0x7fffffffffff, "", fsmNotAligned, nil, true, false, false, false)
+ms.waitTillDone()
+print(string.format("%X", ms.Result))
