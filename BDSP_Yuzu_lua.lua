@@ -91,6 +91,7 @@ local function printAdvances()
   initRNG:next()
 
   if currS0 == initRNG.s0 and currS1 == initRNG.s1 then
+   GetLuaEngine().MenuItem5.doClick()
    initRNG:print()
    printCurrInfo(currS0, currS1)
    local generator = BDSPGenerator.new(currS0, currS1)
