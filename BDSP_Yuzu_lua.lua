@@ -1,10 +1,10 @@
 memScan = createMemScan()
 memScan.setOnlyOneResult(true)
-memScan.firstScan(soExactValue, vtByteArray, 0, "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 AB AB AB AB 11 00 00 00 27 00 00 00 00 00 00 00 55 6E 69 74 79 53 74 65 72 65 6F 47 6C 6F 62 61 6C 73 00 00 00 00 00 00", "", 0, 0x7fffffffffff, "", fsmNotAligned, nil, true, false, false, false)
+memScan.firstScan(soExactValue, vtQword, 0, "04B2A5E830444F4D", "", 0, 0x7fffffffffff, "", fsmNotAligned, nil, true, false, false, false)
 memScan.waitTillDone()
 
-local s0Addr = memScan.Result - 0x10
-local s1Addr = memScan.Result - 0x8
+local s0Addr = memScan.Result + 0xC04D0D8
+local s1Addr = memScan.Result + 0xC04D0E0
 
 
 
