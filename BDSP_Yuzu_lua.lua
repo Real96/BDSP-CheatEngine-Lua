@@ -1,13 +1,45 @@
-memScan = createMemScan()
-memScan.setOnlyOneResult(true)
-memScan.firstScan(soExactValue, vtQword, 0, "04B2A5E830444F4D", "", 0, 0x7fffffffffff, "", fsmNotAligned, nil, true, false, false, false)
-memScan.waitTillDone()
+-- Find game Base address and Main address
+local seedAddressScan = createMemScan()
+local foundList = createFoundList(seedAddressScan)
+seedAddressScan.firstScan(soExactValue, vtQword, 0, "04B2A5E830444F4D", "", 0, 0x7fffffffffff, "", fsmNotAligned, nil, true, false, false, false)
+seedAddressScan.waitTillDone()
+foundList.initialize()
 
-local s0Addr = memScan.Result + 0xC04D0D8
-local s1Addr = memScan.Result + 0xC04D0E0
+local main = tonumber(foundList.Address[1], 16) - 0x8
+local base = main - 0x8004000
+
+foundList.destroy()
+seedAddressScan.destroy()
 
 
 
+-- Set addresses
+local s0Addr = readQword(main + 0x4F8CCD0) + base
+local s1Addr = s0Addr + 0x8
+
+local diamondPlayerPrefsProviderInstance = 0x4C49098
+local pearlPlayerPrefsProviderInstance = 0x4E60170
+
+local playerPrefsProviderInstance = diamondPlayerPrefsProviderInstance
+
+if readQword(main + playerPrefsProviderInstance) == 0 then
+ playerPrefsProviderInstance = pearlPlayerPrefsProviderInstance
+end
+
+local tmpAddr = readQword(main + playerPrefsProviderInstance)
+tmpAddr = readQword(tmpAddr + base + 0x18)
+tmpAddr = readQword(tmpAddr + base + 0xc0)
+tmpAddr = readQword(tmpAddr + base + 0x28)
+tmpAddr = readQword(tmpAddr + base + 0xb8)
+tmpAddr = readQword(tmpAddr + base)
+
+local isEggReadyAddr = tmpAddr + base + 0x458
+local eggSeedAddr = isEggReadyAddr + 0x8
+local eggStepsCounterAddr = eggSeedAddr + 0x8
+
+
+
+-- XorShift class
 XorShift = {}
 XorShift.__index = XorShift
 
@@ -40,12 +72,12 @@ function XorShift:print()
  print(string.format("S[0]: %016X  S[1]: %016X", self.s0, self.s1))
 end
 
-local initRNG = XorShift.new(readPointer(s0Addr), readPointer(s1Addr))
+local initRNG = XorShift.new(readQword(s0Addr), readQword(s1Addr))
 initRNG:print()
 
 
 
-BDSPGenerator = {}
+--[[BDSPGenerator = {}
 BDSPGenerator.__index = BDSPGenerator
 
 function BDSPGenerator.new(s0, s1)
@@ -71,7 +103,7 @@ function BDSPGenerator:printShinyAdvances()
  print(string.format("Next Shiny advances: %d", self.currRNG.advances))
  print("")
  print("")
-end
+end]]
 
 
 
@@ -83,38 +115,64 @@ local function printCurrInfo(s0, s1)
  print("")
 end
 
-local function printAdvances()
- local currS0 = readPointer(s0Addr)
- local currS1 = readPointer(s1Addr)
+local function printEggInfo()
+ local isEggReady = readQword(isEggReadyAddr) == 0x01
+ local eggSeed
+ local eggStepsCounter = 180 - readBytes(eggStepsCounterAddr)
 
- while currS0 ~= initRNG.s0 or currS1 ~= initRNG.s1 do
-  initRNG:next()
+ if not isEggReady then
+  print("Egg Steps Counter: "..eggStepsCounter)
+  print("Egg is not ready")
+ end
 
-  if currS0 == initRNG.s0 and currS1 == initRNG.s1 then
-   GetLuaEngine().MenuItem5.doClick()
-   initRNG:print()
-   printCurrInfo(currS0, currS1)
-   local generator = BDSPGenerator.new(currS0, currS1)
-   generator:printShinyAdvances()
-  end
+ if isEggReady then
+  eggSeed = readInteger(eggSeedAddr)
+  print("Egg generated, go get it!")
+  print(string.format("Egg Seed: %08X", eggSeed))
+ elseif eggStepsCounter == 1 then
+  print("Next step might generate an egg!")
+ elseif eggStepsCounter == 180 then
+  print("180th step taken")
+ else
+  print("Keep on steppin'")
  end
 end
 
+local function printRngInfo()
+ local currS0 = readQword(s0Addr)
+ local currS1 = readQword(s1Addr)
+ local skips = 0
 
+ while (currS0 ~= initRNG.s0 or currS1 ~= initRNG.s1) and skips < 99999 do
+  initRNG:next()
+  GetLuaEngine().MenuItem5.doClick()
+  initRNG:print()
+  printCurrInfo(currS0, currS1)
+  printEggInfo()
+  skips = skips + 1
 
-printCurrInfo(readPointer(s0Addr), readPointer(s1Addr))
-local generator = BDSPGenerator.new(readPointer(s0Addr), readPointer(s1Addr))
-generator:printShinyAdvances()
+  --if currS0 == initRNG.s0 and currS1 == initRNG.s1 then
+  --end
+ end
+
+ --local generator = BDSPGenerator.new(currS0, currS1)
+ --generator:printShinyAdvances()
+end
+
+printCurrInfo(readQword(s0Addr), readQword(s1Addr))
+printEggInfo()
+--local generator = BDSPGenerator.new(readQword(s0Addr), readQword(s1Addr))
+--generator:printShinyAdvances()
 
 local aTimer = nil
-local timerInterval = 100
+local timerInterval = 500
 
 local function aTimerTick(timer)
  if isKeyPressed(VK_NUMPAD0) or isKeyPressed(VK_0) then
   timer.destroy()
  end
 
- printAdvances()
+ printRngInfo()
 end
 
 aTimer = createTimer(getMainForm())
