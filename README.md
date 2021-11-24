@@ -19,6 +19,7 @@ Lua script for RNG abusing in Pokémon Brilliant Diamond and Shining Pearl on Yu
 
 
 ## Credits:
+* Yuzu/Ryujinx devs
 * zaksabeast for his great Rng Switch tool [CaptureSight](https://github.com/zaksabeast/CaptureSight/) (part of the code is taken from there)
 * Admiral-Fish for his great app [PokeFinder](https://github.com/Admiral-Fish/PokeFinder) always up to date
 * [SciresM](https://github.com/SciresM), [Kaphotics](https://github.com/kwsch) and all the other researchers!
