@@ -11,10 +11,10 @@ do
                            "", fsmNotAligned, nil, true, false, false, false)
  seedAddressScan.waitTillDone()
  foundList.initialize()
- 
+
  mainAddr = tonumber(foundList.Address[1], 16) - 0x8
  baseAddr = mainAddr - 0x8004000
- 
+
  foundList.destroy()
  seedAddressScan.destroy()
 end
@@ -37,6 +37,7 @@ do
  end
 end
 
+local IDsAddr
 local isEggReadyFlagAddr
 
 do
@@ -46,9 +47,14 @@ do
  tmpAddr = readQword(tmpAddr + baseAddr + 0x28)
  tmpAddr = readQword(tmpAddr + baseAddr + 0xb8)
  tmpAddr = readQword(tmpAddr + baseAddr)
+ IDsAddr = tmpAddr + baseAddr + 0xE8
  isEggReadyFlagAddr = tmpAddr + baseAddr + 0x458
 end
 
+local TID = bAnd(readInteger(IDsAddr), 0xFFFF)
+local SID = bShr(readInteger(IDsAddr), 16)
+local G8TID = bAnd((SID << 16) | TID, 0xFFFFFFFF) % 1000000
+local TSV = bShr((TID ~ SID), 4)
 local eggSeedAddr = isEggReadyFlagAddr + 0x8
 local eggStepsCounterAddr = eggSeedAddr + 0x8
 
@@ -88,8 +94,9 @@ function XorShift:print()
  print(string.format("Initial Seed:\nS[0]: %016X  S[1]: %016X", self.initS0, self.initS1))
  print("")
  print(string.format("Current Seed:\nS[0]: %016X  S[1]: %016X", self.s0, self.s1))
- print(string.format("Advances: %d", self.advances))
  print("")
+ print(string.format("Advances: %d", self.advances))
+ print("\n")
 end
 
 local initRNG = XorShift.new(readQword(s0Addr), readQword(s1Addr))
@@ -121,8 +128,7 @@ function BDSPGenerator:printShinyAdvances()
  end
 
  print(string.format("Next Shiny advances: %d", self.currRNG.advances))
- print("")
- print("")
+ print("\n")
 end]]
 
 
@@ -155,6 +161,15 @@ local function printEggInfo()
  else
   print("Keep on steppin'")
  end
+
+ print("\n")
+end
+
+local function printTrainerInfo()
+ print(string.format("G8TID: %d", G8TID))
+ print(string.format("TSV: %d", TSV))
+ print(string.format("TID: %d", TID))
+ print(string.format("SID: %d", SID))
 end
 
 local function printRngInfo()
@@ -168,6 +183,7 @@ local function printRngInfo()
   initRNG:print()
   --printCurrInfo(currS0, currS1)
   printEggInfo()
+  printTrainerInfo()
   skips = skips + 1
 
   --if currS0 == initRNG.s0 and currS1 == initRNG.s1 then
@@ -180,6 +196,7 @@ end
 
 --printCurrInfo(readQword(s0Addr), readQword(s1Addr))
 printEggInfo()
+printTrainerInfo()
 --local generator = BDSPGenerator.new(readQword(s0Addr), readQword(s1Addr))
 --generator:printShinyAdvances()
 
