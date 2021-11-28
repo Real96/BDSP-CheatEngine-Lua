@@ -60,6 +60,8 @@ XorShift.__index = XorShift
 
 function XorShift.new(s0, s1)
  local o = setmetatable({}, XorShift)
+ o.initS0 = s0
+ o.initS1 = s1
  o.s0 = s0
  o.s1 = s1
  o.advances = 0
@@ -83,7 +85,9 @@ function XorShift:next()
 end
 
 function XorShift:print()
- print(string.format("S[0]: %016X  S[1]: %016X", self.s0, self.s1))
+ print(string.format("Initial Seed:\nS[0]: %016X  S[1]: %016X", self.initS0, self.initS1))
+ print("")
+ print(string.format("Current Seed:\nS[0]: %016X  S[1]: %016X", self.s0, self.s1))
  print(string.format("Advances: %d", self.advances))
  print("")
 end
