@@ -51,12 +51,16 @@ do
  isEggReadyFlagAddr = tmpAddr + baseAddr + 0x458
 end
 
+local eggSeedAddr = isEggReadyFlagAddr + 0x8
+local eggStepsCounterAddr = eggSeedAddr + 0x8
+
+
+
+-- Set trainer info
 local TID = bAnd(readInteger(IDsAddr), 0xFFFF)
 local SID = bShr(readInteger(IDsAddr), 16)
 local G8TID = bAnd((SID << 16) | TID, 0xFFFFFFFF) % 1000000
 local TSV = bShr((TID ~ SID), 4)
-local eggSeedAddr = isEggReadyFlagAddr + 0x8
-local eggStepsCounterAddr = eggSeedAddr + 0x8
 
 
 
@@ -100,47 +104,10 @@ function XorShift:print()
 end
 
 local initRNG = XorShift.new(readQword(s0Addr), readQword(s1Addr))
-initRNG:print()
 
 
 
---[[BDSPGenerator = {}
-BDSPGenerator.__index = BDSPGenerator
-
-function BDSPGenerator.new(s0, s1)
- local o = setmetatable({}, BDSPGenerator)
- o.currRNG = XorShift.new(s0, s1)
-
- return o
-end
-
-function BDSPGenerator:isShiny()
- local currRNG = XorShift.new(self.currRNG.s0, self.currRNG.s1)
- local pid = currRNG:next()
- local shinyRand = currRNG:next()
-
- return (bAnd(pid, 0xFFF0) ~ bShr(pid, 0x10) ~ bShr(shinyRand, 0x10) ~ bAnd(shinyRand, 0xFFF0)) < 0x10
-end
-
-function BDSPGenerator:printShinyAdvances()
- while not self:isShiny() do
-  self.currRNG:next()
- end
-
- print(string.format("Next Shiny advances: %d", self.currRNG.advances))
- print("\n")
-end]]
-
-
-
---[[local function printCurrInfo(s0, s1)
- local currRNG = XorShift.new(s0, s1)
- local currPID = currRNG:next()
- local currShinyRand = currRNG:next()
- print(string.format("PID: %08X - Shiny Rand: %08X", currPID, currShinyRand))
- print("")
-end]]
-
+-- Printing functions
 local function printEggInfo()
  local isEggReady = readQword(isEggReadyFlagAddr) == 0x01
  local eggStepsCounter = 180 - readBytes(eggStepsCounterAddr)
@@ -181,28 +148,15 @@ local function printRngInfo()
   initRNG:next()
   GetLuaEngine().MenuItem5.doClick()
   initRNG:print()
-  --printCurrInfo(currS0, currS1)
   printEggInfo()
   printTrainerInfo()
   skips = skips + 1
-
-  --if currS0 == initRNG.s0 and currS1 == initRNG.s1 then
-  --end
  end
-
- --local generator = BDSPGenerator.new(currS0, currS1)
- --generator:printShinyAdvances()
 end
 
---printCurrInfo(readQword(s0Addr), readQword(s1Addr))
-printEggInfo()
-printTrainerInfo()
---local generator = BDSPGenerator.new(readQword(s0Addr), readQword(s1Addr))
---generator:printShinyAdvances()
 
-local aTimer = nil
-local timerInterval = 500
 
+-- Timer function
 local function aTimerTick(timer)
  if isKeyPressed(VK_0) or isKeyPressed(VK_NUMPAD0) then
   timer.destroy()
@@ -210,6 +164,16 @@ local function aTimerTick(timer)
 
  printRngInfo()
 end
+
+
+
+-- Main
+initRNG:print()
+printEggInfo()
+printTrainerInfo()
+
+local aTimer = nil
+local timerInterval = 500
 
 aTimer = createTimer(getMainForm())
 aTimer.Interval = timerInterval
