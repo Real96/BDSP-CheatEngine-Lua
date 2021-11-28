@@ -1,40 +1,55 @@
+local mainAddr
+local baseAddr
+
+
+
 -- Find game Base address and Main address
-local seedAddressScan = createMemScan()
-local foundList = createFoundList(seedAddressScan)
-seedAddressScan.firstScan(soExactValue, vtQword, 0, "04B2A5E830444F4D", "", 0, 0x7fffffffffff, "", fsmNotAligned, nil, true, false, false, false)
-seedAddressScan.waitTillDone()
-foundList.initialize()
-
-local main = tonumber(foundList.Address[1], 16) - 0x8
-local base = main - 0x8004000
-
-foundList.destroy()
-seedAddressScan.destroy()
+do
+ local seedAddressScan = createMemScan()
+ local foundList = createFoundList(seedAddressScan)
+ seedAddressScan.firstScan(soExactValue, vtQword, 0, "04B2A5E830444F4D", "", 0, 0x7fffffffffff,
+                           "", fsmNotAligned, nil, true, false, false, false)
+ seedAddressScan.waitTillDone()
+ foundList.initialize()
+ 
+ mainAddr = tonumber(foundList.Address[1], 16) - 0x8
+ baseAddr = mainAddr - 0x8004000
+ 
+ foundList.destroy()
+ seedAddressScan.destroy()
+end
 
 
 
 -- Set addresses
-local s0Addr = readQword(main + 0x4F8CCD0) + base
+local s0Addr = readQword(mainAddr + 0x4F8CCD0) + baseAddr
 local s1Addr = s0Addr + 0x8
 
-local diamondPlayerPrefsProviderInstance = 0x4C49098
-local pearlPlayerPrefsProviderInstance = 0x4E60170
+local playerPrefsProviderInstanceAddr
 
-local playerPrefsProviderInstance = diamondPlayerPrefsProviderInstance
+do
+ local diamondPlayerPrefsProviderInstanceAddr = 0x4C49098
+ local pearlPlayerPrefsProviderInstanceAddr = 0x4E60170
+ playerPrefsProviderInstanceAddr = diamondPlayerPrefsProviderInstanceAddr
 
-if readQword(main + playerPrefsProviderInstance) == 0 then
- playerPrefsProviderInstance = pearlPlayerPrefsProviderInstance
+ if readQword(mainAddr + playerPrefsProviderInstanceAddr) == 0 then
+  playerPrefsProviderInstanceAddr = pearlPlayerPrefsProviderInstanceAddr
+ end
 end
 
-local tmpAddr = readQword(main + playerPrefsProviderInstance)
-tmpAddr = readQword(tmpAddr + base + 0x18)
-tmpAddr = readQword(tmpAddr + base + 0xc0)
-tmpAddr = readQword(tmpAddr + base + 0x28)
-tmpAddr = readQword(tmpAddr + base + 0xb8)
-tmpAddr = readQword(tmpAddr + base)
+local isEggReadyFlagAddr
 
-local isEggReadyAddr = tmpAddr + base + 0x458
-local eggSeedAddr = isEggReadyAddr + 0x8
+do
+ local tmpAddr = readQword(mainAddr + playerPrefsProviderInstanceAddr)
+ tmpAddr = readQword(tmpAddr + baseAddr + 0x18)
+ tmpAddr = readQword(tmpAddr + baseAddr + 0xc0)
+ tmpAddr = readQword(tmpAddr + baseAddr + 0x28)
+ tmpAddr = readQword(tmpAddr + baseAddr + 0xb8)
+ tmpAddr = readQword(tmpAddr + baseAddr)
+ isEggReadyFlagAddr = tmpAddr + baseAddr + 0x458
+end
+
+local eggSeedAddr = isEggReadyFlagAddr + 0x8
 local eggStepsCounterAddr = eggSeedAddr + 0x8
 
 
@@ -116,8 +131,7 @@ local function printCurrInfo(s0, s1)
 end
 
 local function printEggInfo()
- local isEggReady = readQword(isEggReadyAddr) == 0x01
- local eggSeed
+ local isEggReady = readQword(isEggReadyFlagAddr) == 0x01
  local eggStepsCounter = 180 - readBytes(eggStepsCounterAddr)
 
  if not isEggReady then
@@ -126,7 +140,7 @@ local function printEggInfo()
  end
 
  if isEggReady then
-  eggSeed = readInteger(eggSeedAddr)
+  local eggSeed = readInteger(eggSeedAddr)
   print("Egg generated, go get it!")
   print(string.format("Egg Seed: %08X", eggSeed))
  elseif eggStepsCounter == 1 then
@@ -168,7 +182,7 @@ local aTimer = nil
 local timerInterval = 500
 
 local function aTimerTick(timer)
- if isKeyPressed(VK_NUMPAD0) or isKeyPressed(VK_0) then
+ if isKeyPressed(VK_0) or isKeyPressed(VK_NUMPAD0) then
   timer.destroy()
  end
 
