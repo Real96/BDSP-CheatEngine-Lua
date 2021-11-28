@@ -83,8 +83,9 @@ function XorShift:next()
 end
 
 function XorShift:print()
- print(string.format("Advances: %d", self.advances))
  print(string.format("S[0]: %016X  S[1]: %016X", self.s0, self.s1))
+ print(string.format("Advances: %d", self.advances))
+ print("")
 end
 
 local initRNG = XorShift.new(readQword(s0Addr), readQword(s1Addr))
@@ -122,13 +123,13 @@ end]]
 
 
 
-local function printCurrInfo(s0, s1)
+--[[local function printCurrInfo(s0, s1)
  local currRNG = XorShift.new(s0, s1)
  local currPID = currRNG:next()
  local currShinyRand = currRNG:next()
  print(string.format("PID: %08X - Shiny Rand: %08X", currPID, currShinyRand))
  print("")
-end
+end]]
 
 local function printEggInfo()
  local isEggReady = readQword(isEggReadyFlagAddr) == 0x01
@@ -161,7 +162,7 @@ local function printRngInfo()
   initRNG:next()
   GetLuaEngine().MenuItem5.doClick()
   initRNG:print()
-  printCurrInfo(currS0, currS1)
+  --printCurrInfo(currS0, currS1)
   printEggInfo()
   skips = skips + 1
 
@@ -173,7 +174,7 @@ local function printRngInfo()
  --generator:printShinyAdvances()
 end
 
-printCurrInfo(readQword(s0Addr), readQword(s1Addr))
+--printCurrInfo(readQword(s0Addr), readQword(s1Addr))
 printEggInfo()
 --local generator = BDSPGenerator.new(readQword(s0Addr), readQword(s1Addr))
 --generator:printShinyAdvances()
