@@ -43,8 +43,9 @@ end
 
 local s0Addr = readQword(mainAddr + 0x4F8CCD0) + baseAddr
 local s1Addr = s0Addr + 0x8
-local IDsAddr = getPlayerPrefsProviderAddr() + baseAddr + 0xE8
-local isEggReadyFlagAddr = getPlayerPrefsProviderAddr() + baseAddr + 0x458
+local playerPrefsProviderAddr = getPlayerPrefsProviderAddr()
+local IDsAddr = playerPrefsProviderAddr + baseAddr + 0xE8
+local isEggReadyFlagAddr = playerPrefsProviderAddr + baseAddr + 0x458
 local eggSeedAddr = isEggReadyFlagAddr + 0x8
 local eggStepsCounterAddr = eggSeedAddr + 0x8
 
