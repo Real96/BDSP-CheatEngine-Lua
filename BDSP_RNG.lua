@@ -1,9 +1,7 @@
+-- Find game Base address and Main address
 local mainAddr
 local baseAddr
 
-
-
--- Find game Base address and Main address
 do
  local seedAddressScan = createMemScan()
  local foundList = createFoundList(seedAddressScan)
@@ -134,9 +132,9 @@ end
 
 local function printTrainerInfo()
  print(string.format("G8TID: %d", G8TID))
- print(string.format("TSV: %d", TSV))
  print(string.format("TID: %d", TID))
  print(string.format("SID: %d", SID))
+ print(string.format("TSV: %d", TSV))
 end
 
 local function printRngInfo()
