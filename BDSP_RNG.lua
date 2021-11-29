@@ -5,7 +5,7 @@ local baseAddr
 do
  local seedAddressScan = createMemScan()
  local foundList = createFoundList(seedAddressScan)
- seedAddressScan.firstScan(soExactValue, vtQword, 0, "04B2A5E830444F4D", "", 0, 0x7fffffffffff,
+ seedAddressScan.firstScan(soExactValue, vtQword, 0, "04B2A5E830444F4D", "", 0, 0x7FFFFFFFFFFF,
                            "", fsmNotAligned, nil, true, false, false, false)
  seedAddressScan.waitTillDone()
  foundList.initialize()
@@ -20,35 +20,31 @@ end
 
 
 -- Set addresses
-local s0Addr = readQword(mainAddr + 0x4F8CCD0) + baseAddr
-local s1Addr = s0Addr + 0x8
-
-local playerPrefsProviderInstanceAddr
-
-do
+local function getPlayerPrefsProviderInstanceAddr()
  local diamondPlayerPrefsProviderInstanceAddr = 0x4C49098
  local pearlPlayerPrefsProviderInstanceAddr = 0x4E60170
- playerPrefsProviderInstanceAddr = diamondPlayerPrefsProviderInstanceAddr
 
- if readQword(mainAddr + playerPrefsProviderInstanceAddr) == 0 then
-  playerPrefsProviderInstanceAddr = pearlPlayerPrefsProviderInstanceAddr
+ if readQword(mainAddr + diamondPlayerPrefsProviderInstanceAddr) == 0 then
+  return pearlPlayerPrefsProviderInstanceAddr
+ else
+  return diamondPlayerPrefsProviderInstanceAddr
  end
 end
 
-local IDsAddr
-local isEggReadyFlagAddr
+local function getPlayerPrefsProviderAddr()
+ local playerPrefsProviderInstanceAddr = readQword(mainAddr + getPlayerPrefsProviderInstanceAddr())
+ playerPrefsProviderInstanceAddr = readQword(playerPrefsProviderInstanceAddr + baseAddr + 0x18)
+ playerPrefsProviderInstanceAddr = readQword(playerPrefsProviderInstanceAddr + baseAddr + 0xC0)
+ playerPrefsProviderInstanceAddr = readQword(playerPrefsProviderInstanceAddr + baseAddr + 0x28)
+ playerPrefsProviderInstanceAddr = readQword(playerPrefsProviderInstanceAddr + baseAddr + 0xB8)
 
-do
- local tmpAddr = readQword(mainAddr + playerPrefsProviderInstanceAddr)
- tmpAddr = readQword(tmpAddr + baseAddr + 0x18)
- tmpAddr = readQword(tmpAddr + baseAddr + 0xc0)
- tmpAddr = readQword(tmpAddr + baseAddr + 0x28)
- tmpAddr = readQword(tmpAddr + baseAddr + 0xb8)
- tmpAddr = readQword(tmpAddr + baseAddr)
- IDsAddr = tmpAddr + baseAddr + 0xE8
- isEggReadyFlagAddr = tmpAddr + baseAddr + 0x458
+ return readQword(playerPrefsProviderInstanceAddr + baseAddr)
 end
 
+local s0Addr = readQword(mainAddr + 0x4F8CCD0) + baseAddr
+local s1Addr = s0Addr + 0x8
+local IDsAddr = getPlayerPrefsProviderAddr() + baseAddr + 0xE8
+local isEggReadyFlagAddr = getPlayerPrefsProviderAddr() + baseAddr + 0x458
 local eggSeedAddr = isEggReadyFlagAddr + 0x8
 local eggStepsCounterAddr = eggSeedAddr + 0x8
 
