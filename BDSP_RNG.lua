@@ -5,7 +5,7 @@ local baseAddr
 do
  local seedAddressScan = createMemScan()
  local foundList = createFoundList(seedAddressScan)
- seedAddressScan.firstScan(soExactValue, vtQword, 0, "04B2A5E830444F4D", "", 0, 0x7FFFFFFFFFFF,
+ seedAddressScan.firstScan(soExactValue, vtQword, 0, "04B2A61830444F4D", "", 0, 0x7FFFFFFFFFFF,
                            "", fsmNotAligned, nil, true, false, false, false)
  seedAddressScan.waitTillDone()
  foundList.initialize()
@@ -20,19 +20,8 @@ end
 
 
 -- Set addresses
-local function getPlayerPrefsProviderInstanceAddr()
- local diamondPlayerPrefsProviderInstanceAddr = 0x4C49098
- local pearlPlayerPrefsProviderInstanceAddr = 0x4E60170
-
- if readQword(mainAddr + diamondPlayerPrefsProviderInstanceAddr) == 0 then
-  return pearlPlayerPrefsProviderInstanceAddr
- else
-  return diamondPlayerPrefsProviderInstanceAddr
- end
-end
-
 local function getPlayerPrefsProviderAddr()
- local playerPrefsProviderInstanceAddr = readQword(mainAddr + getPlayerPrefsProviderInstanceAddr())
+ local playerPrefsProviderInstanceAddr = readQword(mainAddr + 0x4E60170)
  playerPrefsProviderInstanceAddr = readQword(playerPrefsProviderInstanceAddr + baseAddr + 0x18)
  playerPrefsProviderInstanceAddr = readQword(playerPrefsProviderInstanceAddr + baseAddr + 0xC0)
  playerPrefsProviderInstanceAddr = readQword(playerPrefsProviderInstanceAddr + baseAddr + 0x28)
