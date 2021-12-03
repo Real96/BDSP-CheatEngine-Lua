@@ -17,9 +17,6 @@ Lua script for RNG abusing in Pokémon Brilliant Diamond and Shining Pearl on Yu
 * Click `Execute Script`. It will freeze for a bit, just wait until it will print all the rng info in a new window
 * If you want to stop the script press 0 or NumPad 0. It won't stop otherwhise
 
-## Note
-In noisy areas advances will be too fast for Cheat Engine. So, in case it freezes, just pause Yuzu/Ryujinx and wait until Cheat Engine unfreezes to unpause the emulator.
-
 ## Credits:
 * [Cheat Engine](https://github.com/cheat-engine/cheat-engine) devs
 * [Yuzu](https://github.com/yuzu-emu/yuzu)/[Ryujinx](https://github.com/Ryujinx/Ryujinx) devs
