@@ -130,11 +130,14 @@ local function printRngInfo()
 
  while (currS0 ~= initRNG.s0 or currS1 ~= initRNG.s1) and skips < 99999 do
   initRNG:next()
-  GetLuaEngine().MenuItem5.doClick()
-  initRNG:print()
-  printEggInfo()
-  printTrainerInfo()
   skips = skips + 1
+
+  if currS0 == initRNG.s0 and currS1 == initRNG.s1 then
+   GetLuaEngine().MenuItem5.doClick()
+   initRNG:print()
+   printEggInfo()
+   printTrainerInfo()
+  end
  end
 end
 
@@ -157,7 +160,7 @@ printEggInfo()
 printTrainerInfo()
 
 local aTimer = nil
-local timerInterval = 500
+local timerInterval = 100
 
 aTimer = createTimer(getMainForm())
 aTimer.Interval = timerInterval
