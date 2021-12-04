@@ -15,11 +15,15 @@ Lua script for RNG abusing in Pokémon Brilliant Diamond and Shining Pearl on Yu
 * Click on `Table > Show Cheat Table Lua Script`. A new window called `Lua Script: Cheat Table` will appear
 * Open `BDSP_RNG.lua` with a text editor, copy all its content and paste it in the window opened before.
 * Click `Execute Script`. It will freeze for a bit, just wait until it will print all the rng info in a new window
+
+## Note
 * If you want to stop the script press 0 or NumPad 0. It won't stop otherwhise
+* If you want to restart the game, do what written above and restart both the game and the script. The script won't work otherwhise
 
 ## Credits:
 * [Cheat Engine](https://github.com/cheat-engine/cheat-engine) devs
 * [Yuzu](https://github.com/yuzu-emu/yuzu)/[Ryujinx](https://github.com/Ryujinx/Ryujinx) devs
-* zaksabeast for his great Rng Switch tool [CaptureSight](https://github.com/zaksabeast/CaptureSight/) (part of the code is taken from there)
-* Admiral-Fish for his great app [PokeFinder](https://github.com/Admiral-Fish/PokeFinder) always up to date
+* zaksabeast for the research and for his great Rng Switch tool [CaptureSight](https://github.com/zaksabeast/CaptureSight/) (part of the code is taken from there)
+* Admiral-Fish for the research and for his great app [PokeFinder](https://github.com/Admiral-Fish/PokeFinder) always up to date
+* [SteveCookTU](https://github.com/SteveCookTU) for the research and for dumping Items, Moves and Abilities tables
 * [SciresM](https://github.com/SciresM), [Kaphotics](https://github.com/kwsch) and all the other Pokemon researchers!
