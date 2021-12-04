@@ -19,6 +19,7 @@ Lua script for RNG abusing in Pokémon Brilliant Diamond and Shining Pearl on Yu
 ## Note
 * If you want to stop the script press 0 or NumPad 0. It won't stop otherwhise
 * If you want to restart the game, do what written above and restart both the game and the script. The script won't work otherwhise
+* To avoid text flickering, be sure to enlarge the Lua Engine window
 
 ## Credits:
 * [Cheat Engine](https://github.com/cheat-engine/cheat-engine) devs
