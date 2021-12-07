@@ -834,19 +834,17 @@ local function getWildPokemonAddr()
   wildPokemonAddr = readQword(wildPokemonAddr + baseAddr + 0x20)
   wildPokemonAddr = readQword(wildPokemonAddr + baseAddr + 0x18)
   wildPokemonAddr = wildPokemonAddr + baseAddr + 0x20
-
-  return wildPokemonAddr
- else
-  return nil
  end
+
+ return wildPokemonAddr
 end
 
 local function getPartyPokemonAddr()
  local partySlotIndex = slotIndex
 
  if viewMode[viewModeIndex] == "Breeding" then
-  local partyMemberCountAdrr = readQword(playerPrefsProviderAddr + baseAddr + 0x7F0)
-  partySlotIndex = readBytes(partyMemberCountAdrr + baseAddr + 0x18) - 1
+  local partyMemberCountAddr = readQword(playerPrefsProviderAddr + baseAddr + 0x7F0)
+  partySlotIndex = readBytes(partyMemberCountAddr + baseAddr + 0x18) - 1
  end
 
  local partyPokemonAddr = readQword(playerPrefsProviderAddr + baseAddr + 0x7F0)
@@ -1006,7 +1004,7 @@ local function printPokemonInfo()
  local pokemonBlockAddr = getCurrentViewModeAddr()
  local pk = nil
 
- if pokemonBlockAddr ~= nil then
+ if pokemonBlockAddr ~= 0 then
   pk = getPK8(pokemonBlockAddr)
   pk:decrypt()
  end
