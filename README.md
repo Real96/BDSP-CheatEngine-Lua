@@ -1,7 +1,7 @@
 # BDSP-CheatEngine-Lua
 Lua script for RNG abusing in Pokémon Brilliant Diamond and Shining Pearl on Yuzu/Ryujinx emulator via Cheat Engine!
 
-![Cleffa](https://user-images.githubusercontent.com/20956021/145035841-3bfb2450-3d78-4ffb-91e7-fa0284e7457a.png)
+![Cleffa](https://user-images.githubusercontent.com/20956021/145038320-37ae9125-aa91-4ebe-9d3a-687d8043e589.png)
 
 ## Features
 * Rng info checking
