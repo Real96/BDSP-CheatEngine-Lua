@@ -1,3 +1,12 @@
+-- Various variables
+local viewMode = {"Wild", "Breeding", "Party", "Box"}
+local viewModeIndex = 1
+local prevKeyPressed = false
+local slotIndex = 0
+local boxNumberIndex = 0
+
+
+
 -- Find game Base address and Main address
 local mainAddr
 local baseAddr
@@ -41,24 +50,6 @@ local function getPlayerPrefsProviderAddr()
  return readQword(playerPrefsProviderInstanceAddr + baseAddr)
 end
 
-local function getBattleSetupParamAddr(playerPrefsProviderAddr)
- local battleSetupParamAddr = readQword(playerPrefsProviderAddr + baseAddr + 0x7E8)
- battleSetupParamAddr = readQword(battleSetupParamAddr + baseAddr + 0x58)
- battleSetupParamAddr = readQword(battleSetupParamAddr + baseAddr + 0x28)
-
- if battleSetupParamAddr ~= 0 then
-  battleSetupParamAddr = readQword(battleSetupParamAddr + baseAddr + 0x10)
-  battleSetupParamAddr = readQword(battleSetupParamAddr + baseAddr + 0x20)
-  battleSetupParamAddr = readQword(battleSetupParamAddr + baseAddr + 0x20)
-  battleSetupParamAddr = readQword(battleSetupParamAddr + baseAddr + 0x18)
-  battleSetupParamAddr = battleSetupParamAddr + baseAddr + 0x20
-
-  return battleSetupParamAddr
- else
-  return nil
- end
-end
-
 local s0Addr = readQword(mainAddr + 0x4F8CCD0) + baseAddr
 local s1Addr = s0Addr + 0x8
 local playerPrefsProviderAddr = getPlayerPrefsProviderAddr()
@@ -77,6 +68,49 @@ local TSV = bShr((TID ~ SID), 4)
 
 
 
+-- XorShift class
+XorShift = {}
+XorShift.__index = XorShift
+
+function XorShift.new(s0, s1)
+ local o = setmetatable({}, XorShift)
+ o.initS0 = s0
+ o.initS1 = s1
+ o.s0 = s0
+ o.s1 = s1
+ o.advances = 0
+
+ return o
+end
+
+function XorShift:next()
+ local t = bAnd(self.s0, 0xFFFFFFFF)
+ local s = bShr(self.s1, 32)
+
+ t = t ~ bAnd(bShl(t, 11), 0xFFFFFFFF)
+ t = t ~ bShr(t, 8)
+ t = t ~ (s ~ bShr(s, 19))
+
+ self.s0 = bAnd(bOr(bShl(bAnd(self.s1, 0xFFFFFFFF), 32), bShr(self.s0, 32)), 0xFFFFFFFFFFFFFFFF)
+ self.s1 = bAnd(bOr(bShl(t, 32), bShr(self.s1, 32)), 0xFFFFFFFFFFFFFFFF)
+ self.advances = self.advances + 1
+
+ return bAnd(((t % 0xFFFFFFFF) + 0x80000000), 0xFFFFFFFF)
+end
+
+function XorShift:print()
+ print(string.format("Initial Seed:\nS[0]: %016X  S[1]: %016X", self.initS0, self.initS1))
+ print("")
+ print(string.format("Current Seed:\nS[0]: %016X  S[1]: %016X", self.s0, self.s1))
+ print("")
+ print(string.format("Advances: %d", self.advances))
+ print("\n")
+end
+
+local initRNG = XorShift.new(readQword(s0Addr), readQword(s1Addr))
+
+
+
 -- PK8 class
 local natureNamesList = {
  "Hardy", "Lonely", "Brave", "Adamant", "Naughty",
@@ -86,6 +120,7 @@ local natureNamesList = {
  "Calm", "Gentle", "Sassy", "Careful", "Quirky"}
 
 local speciesNamesList = {
+ "None",
  -- Gen 1
  "Bulbasaur", "Ivysaur", "Venusaur", "Charmander", "Charmeleon", "Charizard", "Squirtle", "Wartortle", "Blastoise",
  "Caterpie", "Metapod", "Butterfree", "Weedle", "Kakuna", "Beedrill", "Pidgey", "Pidgeotto", "Pidgeot", "Rattata",
@@ -142,6 +177,7 @@ local speciesNamesList = {
  "Phione", "Manaphy", "Darkrai", "Shaymin", "Arceus"}
 
 local abilityNamesList = {
+ "--",
  -- Gen 3
  "Stench", "Drizzle", "Speed Boost", "Battle Armor", "Sturdy", "Damp", "Limber", "Sand Veil", "Static", "Volt Absorb",
  "Water Absorb", "Oblivious", "Cloud Nine", "Compound Eyes", "Insomnia", "Color Change", "Immunity", "Flash Fire", "Shield Dust",
@@ -561,7 +597,7 @@ local BLOCKPOSITION = {
  1, 0, 2, 3,
  1, 0, 3, 2}
 
-function leValue(str)
+local function leValue(str)
  local noSpaceStr = str:gsub("%s+", "")
  local i = #noSpaceStr
  local leStr = ""
@@ -574,7 +610,7 @@ function leValue(str)
  return tonumber(leStr, 16)
 end
 
-function LCRNG(s)
+local function LCRNG(s)
  local a = 0x41C6 * (s % 0x10000) + bShr(s, 16) * 0x4E6D
  local b = 0x4E6D * (s % 0x10000) + (a % 0x10000) * 0x10000 + 0x6073
  local c = b % 4294967296
@@ -709,9 +745,9 @@ function PK8:shinyString()
  if shinyType == 0 then
   return ""
  elseif shinyType == 1 then
-  return " (Star)"
+  return " (★)"
  else
-  return " (Square)"
+  return " (◆)"
  end
 end
 
@@ -738,11 +774,17 @@ function PK8:getFinalPID()
 end
 
 function PK8:getAbilityString()
- if self:getAbilityNum() < 4 then
+ if self:getAbilityNum() < 1 then
+  return "0"
+ elseif self:getAbilityNum() < 4 then
   return tostring(self:getAbilityNum() - 1)
  else
   return "H"
  end
+end
+
+function PK8:getIsEgg()
+ return bAnd(bShr(self:getIV32(), 30), 1) == 1
 end
 
 function PK8:cryptPKM(seed, start, ending)
@@ -776,11 +818,10 @@ function PK8:decrypt()
 end
 
 function PK8:print()
- --print(self.buff)
- print(string.format("Species: %s", speciesNamesList[self:getSpecies()]))
+ print(string.format("Species: %s", speciesNamesList[self:getSpecies() + 1]))
  print(string.format("PID: %08X%s", self:getFinalPID(), self:shinyString()))
  print(string.format("Nature: %s", natureNamesList[self:getNature() + 1]))
- print(string.format("Ability: %s (%s)", abilityNamesList[self:getAbility()], self:getAbilityString()))
+ print(string.format("Ability: %s (%s)", abilityNamesList[self:getAbility() + 1], self:getAbilityString()))
  print(string.format("IVs: %s", self:getIVs()))
  print(string.format("Held Item: %s", itemNamesList[self:getHeldItem() + 1]))
  print("")
@@ -792,50 +833,142 @@ end
 
 
 
--- XorShift class
-XorShift = {}
-XorShift.__index = XorShift
+-- Pokemon addresses functions
+local function getWildPokemonAddr()
+ local wildPokemonAddr = readQword(playerPrefsProviderAddr + baseAddr + 0x7E8)
+ wildPokemonAddr = readQword(wildPokemonAddr + baseAddr + 0x58)
+ wildPokemonAddr = readQword(wildPokemonAddr + baseAddr + 0x28)
 
-function XorShift.new(s0, s1)
- local o = setmetatable({}, XorShift)
- o.initS0 = s0
- o.initS1 = s1
- o.s0 = s0
- o.s1 = s1
- o.advances = 0
+ if wildPokemonAddr ~= 0 then
+  wildPokemonAddr = readQword(wildPokemonAddr + baseAddr + 0x10)
+  wildPokemonAddr = readQword(wildPokemonAddr + baseAddr + 0x20)
+  wildPokemonAddr = readQword(wildPokemonAddr + baseAddr + 0x20)
+  wildPokemonAddr = readQword(wildPokemonAddr + baseAddr + 0x18)
+  wildPokemonAddr = wildPokemonAddr + baseAddr + 0x20
 
- return o
+  return wildPokemonAddr
+ else
+  return nil
+ end
 end
 
-function XorShift:next()
- local t = bAnd(self.s0, 0xFFFFFFFF)
- local s = bShr(self.s1, 32)
+local function getPartyPokemonAddr()
+ local partySlotIndex = slotIndex
 
- t = t ~ bAnd(bShl(t, 11), 0xFFFFFFFF)
- t = t ~ bShr(t, 8)
- t = t ~ (s ~ bShr(s, 19))
+ if viewMode[viewModeIndex] == "Breeding" then
+  local partyMemberCountAdrr = readQword(playerPrefsProviderAddr + baseAddr + 0x7F0)
+  partySlotIndex = readBytes(partyMemberCountAdrr + baseAddr + 0x18) - 1
+ end
 
- self.s0 = bAnd(bOr(bShl(bAnd(self.s1, 0xFFFFFFFF), 32), bShr(self.s0, 32)), 0xFFFFFFFFFFFFFFFF)
- self.s1 = bAnd(bOr(bShl(t, 32), bShr(self.s1, 32)), 0xFFFFFFFFFFFFFFFF)
- self.advances = self.advances + 1
+ local partyPokemonAddr = readQword(playerPrefsProviderAddr + baseAddr + 0x7F0)
+ partyPokemonAddr = readQword(partyPokemonAddr + baseAddr + 0x10)
+ partyPokemonAddr = readQword(partyPokemonAddr + baseAddr + 0x20 + (8 * partySlotIndex))
+ partyPokemonAddr = readQword(partyPokemonAddr + baseAddr + 0x20)
+ partyPokemonAddr = readQword(partyPokemonAddr + baseAddr + 0x18)
+ partyPokemonAddr = partyPokemonAddr + baseAddr + 0x20
 
- return bAnd(((t % 0xFFFFFFFF) + 0x80000000), 0xFFFFFFFF)
+ return partyPokemonAddr
 end
 
-function XorShift:print()
- print(string.format("Initial Seed:\nS[0]: %016X  S[1]: %016X", self.initS0, self.initS1))
- print("")
- print(string.format("Current Seed:\nS[0]: %016X  S[1]: %016X", self.s0, self.s1))
- print("")
- print(string.format("Advances: %d", self.advances))
- print("\n")
+local function getBoxPokemonAddr()
+ getBoxNumberIndexInput()
+ getBoxSlotIndexInput()
+ local boxPokemonAddr  = readQword(playerPrefsProviderAddr + baseAddr + 0xA0)
+ boxPokemonAddr  = readQword(boxPokemonAddr  + baseAddr + 0x20 + (8 * boxNumberIndex))
+ boxPokemonAddr  = readQword(boxPokemonAddr  + baseAddr + 0x20 + (8 * slotIndex))
+ boxPokemonAddr  = boxPokemonAddr  + baseAddr + 0x20
+
+ return boxPokemonAddr 
 end
 
-local initRNG = XorShift.new(readQword(s0Addr), readQword(s1Addr))
+
+
+-- Input functions
+local function getViewModeIndexInput()
+ if (isKeyPressed(VK_2) or isKeyPressed(VK_NUMPAD2)) and viewModeIndex < 4 and not prevKeyPressed then
+  slotIndex = 0
+  boxNumberIndex = 0
+  viewModeIndex = viewModeIndex + 1
+  prevKeyPressed = true
+ elseif (isKeyPressed(VK_1) or isKeyPressed(VK_NUMPAD1)) and viewModeIndex > 1 and not prevKeyPressed then
+  slotIndex = 0
+  boxNumberIndex = 0
+  viewModeIndex = viewModeIndex - 1
+  prevKeyPressed = true
+ else
+  prevKeyPressed = false
+ end
+end
+
+local function getPartySlotIndexInput()
+ if (isKeyPressed(VK_5) or isKeyPressed(VK_NUMPAD5)) and slotIndex < 5 and not prevKeyPressed then
+  slotIndex = slotIndex + 1
+  prevKeyPressed = true
+ elseif (isKeyPressed(VK_4) or isKeyPressed(VK_NUMPAD4)) and slotIndex > 0 and not prevKeyPressed then
+  slotIndex = slotIndex - 1
+  prevKeyPressed = true
+ else
+  prevKeyPressed = false
+ end
+end
+
+local function getBoxNumberIndexInput()
+ if (isKeyPressed(VK_8) or isKeyPressed(VK_NUMPAD8)) and boxNumberIndex < 39 and not prevKeyPressed then
+  slotIndex = 0
+  boxNumberIndex = boxNumberIndex + 1
+  prevKeyPressed = true
+ elseif (isKeyPressed(VK_7) or isKeyPressed(VK_NUMPAD7)) and boxNumberIndex > 0 and not prevKeyPressed then
+  slotIndex = 0
+  boxNumberIndex = boxNumberIndex - 1
+  prevKeyPressed = true
+ else
+  prevKeyPressed = false
+ end
+end
+
+local function getBoxSlotIndexInput()
+ if (isKeyPressed(VK_5) or isKeyPressed(VK_NUMPAD5)) and slotIndex < 29 and not prevKeyPressed then
+  slotIndex = slotIndex + 1
+  prevKeyPressed = true
+ elseif (isKeyPressed(VK_4) or isKeyPressed(VK_NUMPAD4)) and slotIndex > 0 and not prevKeyPressed then
+  slotIndex = slotIndex - 1
+  prevKeyPressed = true
+ else
+  prevKeyPressed = false
+ end
+end
+
+local function getPokemonIndexInput()
+ if viewMode[viewModeIndex] == "Party" then
+  getPartySlotIndexInput()
+ elseif viewMode[viewModeIndex] == "Box" then
+  getBoxNumberIndexInput()
+  getBoxSlotIndexInput()
+ end
+end
 
 
 
 -- Printing functions
+local function printTrainerInfo()
+ print("Trainer Info:")
+ print(string.format("G8TID: %d", G8TID))
+ print(string.format("TID: %d", TID))
+ print(string.format("SID: %d", SID))
+ print(string.format("TSV: %d", TSV))
+ print("\n")
+end
+
+local function getCurrentViewModeAddr()
+ if viewMode[viewModeIndex] == "Wild" then
+  return getWildPokemonAddr()
+ elseif viewMode[viewModeIndex] == "Breeding" or viewMode[viewModeIndex] == "Party" then
+  return getPartyPokemonAddr()
+ elseif viewMode[viewModeIndex] == "Box" then
+  return getBoxPokemonAddr()
+ end
+end
+
 local function printEggInfo()
  local isEggReady = readQword(isEggReadyFlagAddr) == 0x01
  local eggStepsCounter = 180 - readBytes(eggStepsCounterAddr)
@@ -857,30 +990,44 @@ local function printEggInfo()
   print("Keep on steppin'")
  end
 
- print("\n")
+ print("")
 end
 
-local function printTrainerInfo()
- print(string.format("G8TID: %d", G8TID))
- print(string.format("TID: %d", TID))
- print(string.format("SID: %d", SID))
- print(string.format("TSV: %d", TSV))
- print("\n")
+local function getPK8(buffAddr)
+ local decStringBuff = table.concat(readBytes(buffAddr, STOREDSIZE, true), " ")
+ local hexStringBuff = decStringBuff:gsub("%S+", function (c) return string.format("%02X", c) end)
+
+ return PK8.new(hexStringBuff)
 end
 
-local function printWildInfo()
- local battleSetupParamAddr = getBattleSetupParamAddr(playerPrefsProviderAddr)
- print("Wild Info")
+local function printPokemonInfo()
+ print(string.format("Mode: %s\t(Change mode pressing keyboard key 1 or 2)\n", viewMode[viewModeIndex]))
 
- if battleSetupParamAddr ~= nil then
-  local decStringBuff = table.concat(readBytes(battleSetupParamAddr, STOREDSIZE, true), " ")
-  local hexStringBuff = decStringBuff:gsub("%S+", function (c) return string.format("%02X", c) end)
+ if viewMode[viewModeIndex] == "Party" then
+  print(string.format("Slot: %d\t\t(Change slot pressing keyboard key 4 or 5)\n", slotIndex + 1))
+ elseif viewMode[viewModeIndex] == "Box" then
+  print(string.format("Number: %d\t(Change box number pressing keyboard key 7 or 8)", boxNumberIndex + 1))
+  print(string.format("Slot: %d\t\t(Change slot pressing keyboard key 4 or 5)\n", slotIndex + 1))
+ elseif viewMode[viewModeIndex] == "Breeding" then
+  printEggInfo()
+ end
 
-  local pk = PK8.new(hexStringBuff)
+ print("Pokemon Info:")
+
+ local pokemonBlockAddr = getCurrentViewModeAddr()
+ local pk = nil
+
+ if pokemonBlockAddr ~= nil then
+  pk = getPK8(pokemonBlockAddr)
   pk:decrypt()
+ end
+
+ if pk ~= nil and (viewMode[viewModeIndex] ~= "Breeding" or pk:getIsEgg()) then
   pk:print()
+ elseif viewMode[viewModeIndex] == "Breeding" then
+  print("No egg in last party slot")
  else
-  print("No battle started")
+  print("No Pokemon")
  end
 end
 
@@ -896,9 +1043,8 @@ local function printRngInfo()
   if currS0 == initRNG.s0 and currS1 == initRNG.s1 then
    GetLuaEngine().MenuItem5.doClick()
    initRNG:print()
-   printEggInfo()
    printTrainerInfo()
-   printWildInfo()
+   printPokemonInfo()
   end
  end
 end
@@ -911,6 +1057,8 @@ local function aTimerTick(timer)
   timer.destroy()
  end
 
+ getViewModeIndexInput()
+ getPokemonIndexInput()
  printRngInfo()
 end
 
@@ -918,9 +1066,8 @@ end
 
 -- Main
 initRNG:print()
-printEggInfo()
 printTrainerInfo()
-printWildInfo()
+printPokemonInfo()
 
 local aTimer = nil
 local timerInterval = 50

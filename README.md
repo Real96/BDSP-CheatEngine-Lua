@@ -3,6 +3,14 @@ Lua script for RNG abusing in Pokémon Brilliant Diamond and Shining Pearl on Yu
 
 ![image](https://user-images.githubusercontent.com/20956021/143800907-9998e7ec-f29d-42fc-a672-1ffcac684bc2.png)
 
+## Features
+* Rng info checking
+* Trainer info checking
+* Wild Pokemon info checking
+* Breeding info checking
+* Party Pokemon info checking
+* Box Pokemon info checking
+
 ## Requirements
 * [Cheat Engine](https://www.cheatengine.org/downloads.php)
 * [Yuzu](https://yuzu-emu.org/downloads/)/[Ryujinx](https://ryujinx.org/download)
@@ -14,12 +22,13 @@ Lua script for RNG abusing in Pokémon Brilliant Diamond and Shining Pearl on Yu
 * Click on `File > Open Process` and select Yuzu/Ryujinx process (Yuzu will look like `xxxx-yuzu xxx | game name`, Ryujinx will look like `xxxx-Ryujinx x.x.xxxx - game name`)
 * Click on `Table > Show Cheat Table Lua Script`. A new window called `Lua Script: Cheat Table` will appear
 * Open `BDSP_RNG.lua` with a text editor, copy all its content and paste it in the window opened before
-* Click `Execute Script`. It will freeze for a bit, just wait until it will print all the rng info in a new window
+* Click `Execute Script`. It will freeze for some seconds, just wait until all the rng info will be printed in a new window
 
-## Note
-* If you want to stop the script press 0 or NumPad 0. It won't stop otherwhise
-* If you want to restart the game, do what's written above and restart both the game and the script. The script won't work otherwhise
-* To avoid text flickering, be sure to enlarge the Lua Engine window
+## Notes
+* To change the info view tab mode, press the keys shown in the script output
+* If you want to stop the script, press keyboard key 0 or keyboard key NumPad 0. It won't stop otherwhise
+* If you want to restart the game, do what's written above and then restart the game and the script. It won't work otherwhise
+* To avoid text flickering, be sure to enlarge enough the `Lua Engine` window
 
 ## Credits:
 * [Cheat Engine](https://github.com/cheat-engine/cheat-engine) devs
