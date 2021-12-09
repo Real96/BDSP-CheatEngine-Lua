@@ -1,4 +1,6 @@
 -- Various variables
+local stateSizeMode = {"u32", "u64"}
+local stateSizeModeIndex = 1
 local viewMode = {"Wild", "Breeding", "Party", "Box"}
 local viewModeIndex = 1
 local prevKeyPressed = false
@@ -50,8 +52,7 @@ local function getPlayerPrefsProviderAddr()
  return readQword(playerPrefsProviderInstanceAddr + baseAddr)
 end
 
-local s0Addr = readQword(mainAddr + 0x4F8CCD0) + baseAddr
-local s1Addr = s0Addr + 0x8
+local stateAddr = readQword(mainAddr + 0x4F8CCD0) + baseAddr
 local playerPrefsProviderAddr = getPlayerPrefsProviderAddr()
 local IDsAddr = playerPrefsProviderAddr + baseAddr + 0xE8
 local isEggReadyFlagAddr = playerPrefsProviderAddr + baseAddr + 0x458
@@ -72,42 +73,55 @@ local TSV = bShr((TID ~ SID), 4)
 XorShift = {}
 XorShift.__index = XorShift
 
-function XorShift.new(s0, s1)
+function XorShift.new(s0, s1, s2, s3)
  local o = setmetatable({}, XorShift)
  o.initS0 = s0
  o.initS1 = s1
- o.s0 = s0
- o.s1 = s1
+ o.initS2 = s2
+ o.initS3 = s3
+
+ o.currS0 = s0
+ o.currS1 = s1
+ o.currS2 = s2
+ o.currS3 = s3
+
  o.advances = 0
 
  return o
 end
 
 function XorShift:next()
- local t = bAnd(self.s0, 0xFFFFFFFF)
- local s = bShr(self.s1, 32)
+ local t = self.currS0
+ local s = self.currS3
 
  t = t ~ bAnd(bShl(t, 11), 0xFFFFFFFF)
  t = t ~ bShr(t, 8)
  t = t ~ (s ~ bShr(s, 19))
 
- self.s0 = bAnd(bOr(bShl(bAnd(self.s1, 0xFFFFFFFF), 32), bShr(self.s0, 32)), 0xFFFFFFFFFFFFFFFF)
- self.s1 = bAnd(bOr(bShl(t, 32), bShr(self.s1, 32)), 0xFFFFFFFFFFFFFFFF)
+ self.currS0 = self.currS1
+ self.currS1 = self.currS2
+ self.currS2 = self.currS3
+ self.currS3 = t
  self.advances = self.advances + 1
 
  return bAnd(((t % 0xFFFFFFFF) + 0x80000000), 0xFFFFFFFF)
 end
 
 function XorShift:print()
- print(string.format("Initial Seed:\nS[0]: %016X  S[1]: %016X", self.initS0, self.initS1))
- print("")
- print(string.format("Current Seed:\nS[0]: %016X  S[1]: %016X", self.s0, self.s1))
- print("")
- print(string.format("Advances: %d", self.advances))
- print("\n")
+ print(string.format("State size: %s\t(Change state size pressing keyboard key 3 or 6)\n", stateSizeMode[stateSizeModeIndex]))
+
+ if stateSizeMode[stateSizeModeIndex] == "u32" then
+  print(string.format("Initial Seed:\nS[0]: %08X  S[1]: %08X\nS[2]: %08X  S[3]: %08X\n", self.initS0, self.initS1, self.initS2, self.initS3))
+  print(string.format("Current Seed:\nS[0]: %08X  S[1]: %08X\nS[2]: %08X  S[3]: %08X\n", self.currS0, self.currS1, self.currS2, self.currS3))
+ else
+  print(string.format("Initial Seed:\nS[0]: %08X%08X  S[1]: %08X%08X\n", self.initS0, self.initS1, self.initS2, self.initS3))
+  print(string.format("Current Seed:\nS[0]: %08X%08X  S[1]: %08X%08X\n", self.currS0, self.currS1, self.currS2, self.currS3))
+ end
+
+ print(string.format("Advances: %d\n\n", self.advances))
 end
 
-local initRNG = XorShift.new(readQword(s0Addr), readQword(s1Addr))
+local initRNG = XorShift.new(readInteger(stateAddr), readInteger(stateAddr + 0x4), readInteger(stateAddr + 0x8), readInteger(stateAddr + 0xC))
 
 
 
@@ -823,8 +837,7 @@ function PK8:print()
  print(string.format("Nature: %s", natureNamesList[self:getNature() + 1]))
  print(string.format("Ability: %s (%s)", abilityNamesList[self:getAbility() + 1], self:getAbilityString()))
  print(string.format("IVs: %s", self:getIVs()))
- print(string.format("Held Item: %s", itemNamesList[self:getHeldItem() + 1]))
- print("")
+ print(string.format("Held Item: %s\n", itemNamesList[self:getHeldItem() + 1]))
  print(string.format("Move: %s", moveNamesList[self:getMove1() + 1]))
  print(string.format("Move: %s", moveNamesList[self:getMove2() + 1]))
  print(string.format("Move: %s", moveNamesList[self:getMove3() + 1]))
@@ -869,19 +882,25 @@ local function getPartyPokemonAddr()
 end
 
 local function getBoxPokemonAddr()
- getBoxNumberIndexInput()
- getBoxSlotIndexInput()
  local boxPokemonAddr  = readQword(playerPrefsProviderAddr + baseAddr + 0xA0)
  boxPokemonAddr  = readQword(boxPokemonAddr  + baseAddr + 0x20 + (8 * boxNumberIndex))
  boxPokemonAddr  = readQword(boxPokemonAddr  + baseAddr + 0x20 + (8 * slotIndex))
  boxPokemonAddr  = boxPokemonAddr  + baseAddr + 0x20
 
- return boxPokemonAddr 
+ return boxPokemonAddr
 end
 
 
 
 -- Input functions
+local function getStateSizeModeIndexInput()
+ if isKeyPressed(VK_3) or isKeyPressed(VK_NUMPAD3) then
+  stateSizeModeIndex = 1
+ elseif isKeyPressed(VK_6) or isKeyPressed(VK_NUMPAD6) then
+  stateSizeModeIndex = 2
+ end
+end
+
 local function getViewModeIndexInput()
  if (isKeyPressed(VK_2) or isKeyPressed(VK_NUMPAD2)) and viewModeIndex < 4 and not prevKeyPressed then
   slotIndex = 0
@@ -979,16 +998,14 @@ local function printEggInfo()
  if isEggReady then
   local eggSeed = readInteger(eggSeedAddr)
   print("Egg generated, go get it!")
-  print(string.format("Egg Seed: %08X", eggSeed))
+  print(string.format("Egg Seed: %08X\n", eggSeed))
  elseif eggStepsCounter == 1 then
-  print("Next step might generate an egg!")
+  print("Next step might generate an egg!\n")
  elseif eggStepsCounter == 180 then
-  print("180th step taken")
+  print("180th step taken\n")
  else
-  print("Keep on steppin'")
+  print("Keep on steppin'\n")
  end
-
- print("")
 end
 
 local function getPK8(buffAddr)
@@ -1030,15 +1047,17 @@ local function printPokemonInfo()
 end
 
 local function printRngInfo()
- local currS0 = readQword(s0Addr)
- local currS1 = readQword(s1Addr)
+ local currRamS0 = readInteger(stateAddr)
+ local currRamS1 = readInteger(stateAddr + 0x4)
+ local currRamS2 = readInteger(stateAddr + 0x8)
+ local currRamS3 = readInteger(stateAddr + 0xC)
  local skips = 0
 
- while (currS0 ~= initRNG.s0 or currS1 ~= initRNG.s1) and skips < 99999 do
+ while (currRamS0 ~= initRNG.currS0 or currRamS1 ~= initRNG.currS1 or currRamS2 ~= initRNG.currS2 or currRamS3 ~= initRNG.currS3) and skips < 99999 do
   initRNG:next()
   skips = skips + 1
 
-  if currS0 == initRNG.s0 and currS1 == initRNG.s1 then
+  if currRamS0 == initRNG.currS0 and currRamS1 == initRNG.currS1 and currRamS2 == initRNG.currS2 and currRamS3 == initRNG.currS3 then
    GetLuaEngine().MenuItem5.doClick()
    initRNG:print()
    printTrainerInfo()
@@ -1055,6 +1074,7 @@ local function aTimerTick(timer)
   timer.destroy()
  end
 
+ getStateSizeModeIndexInput()
  getViewModeIndexInput()
  getPokemonIndexInput()
  printRngInfo()
