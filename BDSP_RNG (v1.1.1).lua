@@ -1,7 +1,7 @@
 -- Various variables
 local stateSizeMode = {"u32", "u64"}
 local stateSizeModeIndex = 1
-local viewMode = {"Wild", "Breeding", "Party", "Box"}
+local viewMode = {"Wild", "Breeding", "Roamer", "Party", "Box"}
 local viewModeIndex = 1
 local prevKeyPressed = false
 local slotIndex = 0
@@ -122,6 +122,53 @@ function XorShift:print()
 end
 
 local initRNG = XorShift.new(readInteger(stateAddr), readInteger(stateAddr + 0x4), readInteger(stateAddr + 0x8), readInteger(stateAddr + 0xC))
+
+
+
+-- XoroShiro128Plus class
+local ulongMask = 0xFFFFFFFFFFFFFFFF
+
+XoroShiro128Plus = {}
+XoroShiro128Plus.__index = XoroShiro128Plus
+
+function XoroShiro128Plus.new(seed)
+ local o = setmetatable({}, XoroShiro128Plus)
+
+ local _seed1 = bAnd((seed - 0x61C8864680B583EB), ulongMask)
+ local _seed2 = bAnd((seed + 0x3C6EF372FE94F82A), ulongMask)
+ _seed1 = bAnd((0xBF58476D1CE4E5B9 * (_seed1 ~ bShr(_seed1, 30))), ulongMask)
+ _seed2 = bAnd((0xBF58476D1CE4E5B9 * (_seed2 ~ bShr(_seed2, 30))), ulongMask)
+ _seed1 = bAnd((0x94D049BB133111EB * (_seed1 ~ bShr(_seed1, 27))), ulongMask)
+ _seed2 = bAnd((0x94D049BB133111EB * (_seed2 ~ bShr(_seed2, 27))), ulongMask)
+
+ o.seed1 = _seed1 ~ bShr(_seed1, 31)
+ o.seed2 = _seed2 ~ bShr(_seed2, 31)
+
+ return o
+end
+
+function XoroShiro128Plus:rotl(x, k)
+ return bAnd(bOr(bShl(x, k), bShr(x, (64 - k))), ulongMask)
+end
+
+function XoroShiro128Plus:next()
+ local s0 = self.seed1
+ local s1 = self.seed2
+ local result = bAnd((s0 + s1), ulongMask)
+ s1 = s1 ~ s0
+ self.seed1 = self:rotl(s0, 24) ~ s1 ~ bAnd(bShl(s1, 16), ulongMask)
+ self.seed2 = self:rotl(s1, 37)
+
+ return bShr(result, 32)
+end
+
+function XoroShiro128Plus:quickrand1(mask)
+ return self:next() % mask
+end
+
+function XoroShiro128Plus:quickrand2(mask)
+ return bAnd(self:next(), mask)
+end
 
 
 
@@ -729,7 +776,7 @@ function PK8:getIVs()
  local ivSpDef = bAnd(bShr(iv32, 25), 0x1F)
  local ivSpd = bAnd(bShr(iv32, 15), 0x1F)
 
- return string.format("%0d/%0d/%0d/%0d/%0d/%0d", ivHp, ivAtk, ivDef, ivSpAtk, ivSpDef, ivSpd)
+ return string.format("%d/%d/%d/%d/%d/%d", ivHp, ivAtk, ivDef, ivSpAtk, ivSpDef, ivSpd)
 end
 
 function PK8:getFakeXor()
@@ -846,6 +893,84 @@ end
 
 
 
+-- Roamer8 class
+Roamer8 = {}
+Roamer8.__index = Roamer8
+
+function Roamer8.new(roamerListAddr)
+ local o = setmetatable({}, Roamer8)
+
+ local roamerAddr = roamerListAddr + baseAddr + 0x20 + (slotIndex * 0x20)
+ o.EC = readInteger(roamerAddr + 0x4)
+ o.species = readSmallInteger(roamerAddr + 0xC)
+
+ local r = XoroShiro128Plus.new(o.EC)      
+ local OTID = r:next()
+ o.PID = r:next()
+
+ local fakeXor = bShr(OTID, 16) ~ bAnd(OTID, 0xFFFF) ~ bShr(o.PID, 16) ~ bAnd(o.PID, 0xFFFF)
+ local PSV = bShr(bShr(o.PID, 16) ~ bAnd(o.PID, 0xFFFF), 4)
+ local realXor = bShr(o.PID, 16) ~ bAnd(o.PID, 0xFFFF) ~ TID ~ SID
+ local TSV = bShr((TID ~ SID), 4)
+
+ if fakeXor < 16 then -- Force shiny
+  if fakeXor == 0 then
+   o.shinyType = 2
+  else
+   o.shinyType = 1
+  end
+
+  if fakeXor ~= realXor then
+   local high = bAnd(o.PID, 0xFFFF) ~ TID ~ SID ~ (2 - o.shinyType)
+   o.PID = bOr(bShl(high, 16), bAnd(o.PID, 0xFFFF))
+  end
+
+  if fakeXor == 0 then
+   o.shinyType = " (◆)"
+  else
+   o.shinyType = " (★)"
+  end
+ else -- Force non shiny
+  o.shinyType = ""
+
+  if PSV == TSV then
+   o.PID = o.PID ~ 0x10000000
+  end
+ end
+
+ o.IVs = {}
+ local i = 0
+ while i < 3 do
+  local stat = r:quickrand1(0x6)
+
+  if o.IVs[stat + 1] == nil then
+   o.IVs[stat + 1] = 31
+   i = i + 1
+  end
+ end
+
+ for i = 1, 6 do
+  if o.IVs[i] == nil then
+   o.IVs[i] = r:quickrand2(0x1F)
+  end
+ end
+
+ o.ability = r:quickrand2(0x1)
+ o.nature = r:quickrand1(25)
+
+ return o
+end
+
+function Roamer8:print()
+ print(string.format("Species: %s", speciesNamesList[self.species + 1]))
+ print(string.format("PID: %08X%s", self.PID, self.shinyType))
+ print(string.format("Nature: %s", natureNamesList[self.nature + 1]))
+ print(string.format("Ability: Levitate (%s)", self.ability))
+ print(string.format("IVs: %d/%d/%d/%d/%d/%d", self.IVs[1], self.IVs[2], self.IVs[3], self.IVs[4], self.IVs[5], self.IVs[6]))
+end
+
+
+
 -- Pokemon addresses functions
 local function getWildPokemonAddr()
  local wildPokemonAddr = readQword(playerPrefsProviderAddr + baseAddr + 0x7E8)
@@ -890,6 +1015,12 @@ local function getBoxPokemonAddr()
  return boxPokemonAddr
 end
 
+local function getRoamerListAddr()
+ local roamerPokemonAddr  = readQword(playerPrefsProviderAddr + baseAddr + 0x2A0)
+
+ return roamerPokemonAddr
+end
+
 
 
 -- Input functions
@@ -902,7 +1033,7 @@ local function getStateSizeModeIndexInput()
 end
 
 local function getViewModeIndexInput()
- if (isKeyPressed(VK_2) or isKeyPressed(VK_NUMPAD2)) and viewModeIndex < 4 and not prevKeyPressed then
+ if (isKeyPressed(VK_2) or isKeyPressed(VK_NUMPAD2)) and viewModeIndex < 5 and not prevKeyPressed then
   slotIndex = 0
   boxNumberIndex = 0
   viewModeIndex = viewModeIndex + 1
@@ -955,12 +1086,26 @@ local function getBoxSlotIndexInput()
  end
 end
 
+local function getRoamerSlotIndexInput()
+ if (isKeyPressed(VK_5) or isKeyPressed(VK_NUMPAD5)) and slotIndex < 1 and not prevKeyPressed then
+  slotIndex = slotIndex + 1
+  prevKeyPressed = true
+ elseif (isKeyPressed(VK_4) or isKeyPressed(VK_NUMPAD4)) and slotIndex > 0 and not prevKeyPressed then
+  slotIndex = slotIndex - 1
+  prevKeyPressed = true
+ else
+  prevKeyPressed = false
+ end
+end
+
 local function getPokemonIndexInput()
  if viewMode[viewModeIndex] == "Party" then
   getPartySlotIndexInput()
  elseif viewMode[viewModeIndex] == "Box" then
   getBoxNumberIndexInput()
   getBoxSlotIndexInput()
+ elseif viewMode[viewModeIndex] == "Roamer" then
+  getRoamerSlotIndexInput()
  end
 end
 
@@ -976,13 +1121,15 @@ local function printTrainerInfo()
  print("\n")
 end
 
-local function getCurrentViewModeAddr()
+local function getCurrentViewModePokemonAddr()
  if viewMode[viewModeIndex] == "Wild" then
   return getWildPokemonAddr()
  elseif viewMode[viewModeIndex] == "Breeding" or viewMode[viewModeIndex] == "Party" then
   return getPartyPokemonAddr()
  elseif viewMode[viewModeIndex] == "Box" then
   return getBoxPokemonAddr()
+ elseif viewMode[viewModeIndex] == "Roamer" then
+  return getRoamerListAddr()
  end
 end
 
@@ -1025,16 +1172,22 @@ local function printPokemonInfo()
   print(string.format("Slot: %d\t\t(Change slot pressing keyboard key 4 or 5)\n", slotIndex + 1))
  elseif viewMode[viewModeIndex] == "Breeding" then
   printEggInfo()
+ elseif viewMode[viewModeIndex] == "Roamer" then
+  print(string.format("Slot: %d\t\t(Change slot pressing keyboard key 4 or 5)\n", slotIndex + 1))
  end
 
  print("Pokemon Info:")
 
- local pokemonBlockAddr = getCurrentViewModeAddr()
+ local pokemonBlockAddr = getCurrentViewModePokemonAddr()
  local pk = nil
 
  if pokemonBlockAddr ~= 0 then
-  pk = getPK8(pokemonBlockAddr)
-  pk:decrypt()
+  if viewMode[viewModeIndex] == "Roamer" then
+   pk = Roamer8.new(pokemonBlockAddr)
+  else
+   pk = getPK8(pokemonBlockAddr)
+   pk:decrypt()
+  end
  end
 
  if pk ~= nil and (viewMode[viewModeIndex] ~= "Breeding" or pk:getIsEgg()) then
