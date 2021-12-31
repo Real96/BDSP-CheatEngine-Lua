@@ -8,6 +8,7 @@ Lua script for RNG abusing in Pokémon Brilliant Diamond and Shining Pearl on Yu
 * Trainer info checking
 * Wild Pokemon info checking
 * Breeding info checking
+* Roamer Pokemon info checking
 * Party Pokemon info checking
 * Box Pokemon info checking
 
