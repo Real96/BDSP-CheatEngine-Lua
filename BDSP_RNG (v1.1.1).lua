@@ -22,7 +22,7 @@ do
  foundList.initialize()
 
  mainAddr = tonumber(foundList.Address[1], 16) - 0x8
- baseAddr = mainAddr - 0x8004000
+ baseAddr = mainAddr - 0x80004000
 
  foundList.destroy()
  seedAddressScan.destroy()
