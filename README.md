@@ -34,7 +34,7 @@ Lua script for RNG abusing in Pokémon Brilliant Diamond and Shining Pearl on Yu
 ## Credits:
 * [Cheat Engine](https://github.com/cheat-engine/cheat-engine) devs
 * [Yuzu](https://github.com/yuzu-emu/yuzu)/[Ryujinx](https://github.com/Ryujinx/Ryujinx) devs
-* zaksabeast for the research and for his great Rng Switch tool [CaptureSight](https://github.com/zaksabeast/CaptureSight/) (part of the code is taken from there)
-* Admiral-Fish for the research and for his great app [PokeFinder](https://github.com/Admiral-Fish/PokeFinder) always up to date
+* [zaksabeast](https://github.com/zaksabeast) for the research and for his great Rng Switch tool [CaptureSight](https://github.com/zaksabeast/CaptureSight/) (part of the code is taken from there)
+* [Admiral-Fish](https://github.com/Admiral-Fish) for the research and for his great app [PokeFinder](https://github.com/Admiral-Fish/PokeFinder) always up to date
 * [SteveCookTU](https://github.com/SteveCookTU) for the research and for dumping Items, Moves and Abilities tables
 * [SciresM](https://github.com/SciresM), [Kaphotics](https://github.com/kwsch) and all the other Pokemon researchers!
